@@ -7,3 +7,6 @@ all:
 
 clean:
 	rm $(TARGET)
+
+run:
+	./$(TARGET)
