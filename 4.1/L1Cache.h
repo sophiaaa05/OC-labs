@@ -21,7 +21,7 @@ void accessL1(uint32_t, uint8_t *, uint32_t);
 
 typedef struct CacheLine {
   uint32_t Tag;
-  uint32_t Data[8]; // 64 bytes of data
+  uint8_t Data[BLOCK_SIZE]; // 64 bytes of data
   uint8_t Valid;
   uint8_t Dirty;
 
