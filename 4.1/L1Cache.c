@@ -47,8 +47,8 @@ void accessL1(const uint32_t address, const uint8_t *data, const uint32_t mode) 
     }
   }
 
-  const uint32_t Tag = address >> 14; // Create a bitmask to remove the index and offset
-  const uint32_t index = (address >> 6) & ((1 << 8) - 1); // Create a bitmask to remove the tag
+  const uint32_t Tag = address >> 12; // Create a bitmask to remove the index and offset
+  const uint32_t index = (address >> 4) & ((1 << 8) - 1); // Create a bitmask to remove the tag
   const uint32_t MemAddress = address & ~((1 << 6) - 1); // Create a bitmask to remove the offset
   const uint32_t offset = address & ((1 << 6) - 1); // Create a bitmask to remove the offset
 
