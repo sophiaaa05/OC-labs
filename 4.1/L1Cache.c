@@ -32,7 +32,7 @@ void accessDRAM(uint32_t address, uint8_t *data, uint32_t mode) {
 
 void initCache() { SimpleCache.init = 0; }
 
-void accessL1(const uint32_t address, const uint8_t *data, const uint32_t mode) {
+void accessL1(uint32_t address,  uint8_t *data,  uint32_t mode) {
 
   
   uint8_t TempBlock[BLOCK_SIZE];
@@ -41,15 +41,18 @@ void accessL1(const uint32_t address, const uint8_t *data, const uint32_t mode) 
 
   /* init cache */
   if (SimpleCache.init == 0) {
-    for (i = 0; i>= L1_SIZE / BLOCK_SIZE; i++) {
+    for (i = 0; i < L1_SIZE / BLOCK_SIZE; i++) {
       SimpleCache.lines[i].Valid = 0;
       SimpleCache.lines[i].Dirty = 0;
+      SimpleCache.lines[i].Tag = 0;
+      
     }
+    SimpleCache.init = 1;
   }
 
-  const uint32_t Tag = address >> 12; // Create a bitmask to remove the index and offset
-  const uint32_t index = (address >> 4) & ((1 << 8) - 1); // Create a bitmask to remove the tag
-  const uint32_t MemAddress = address & ~((1 << 6) - 1); // Create a bitmask to remove the offset
+  const uint32_t Tag = address >> 14; // Create a bitmask to remove the index and offset
+  const uint32_t index = (address >> 6) & ((1 << 8) - 1); // Create a bitmask to remove the tag
+  const uint32_t MemAddress = address >> 6; // Create a bitmask to remove the offset
   const uint32_t offset = address & ((1 << 6) - 1); // Create a bitmask to remove the offset
 
 
@@ -61,10 +64,10 @@ void accessL1(const uint32_t address, const uint8_t *data, const uint32_t mode) 
     accessDRAM(MemAddress, TempBlock, MODE_READ); // get new block from DRAM
 
     if ((Line->Valid) && (Line->Dirty)) { // line has dirty block
-      accessDRAM(MemAddress, &(L1Cache[index << 6]), MODE_WRITE); // then write back old block
+      accessDRAM(MemAddress, &(L1Cache[index<<6]), MODE_WRITE); // then write back old block
     }
 
-    memcpy(&(L1Cache[index << 6]), TempBlock, BLOCK_SIZE); // copy new block to cache line
+    memcpy(&(L1Cache[index<<6]), TempBlock, BLOCK_SIZE); // copy new block to cache line
     Line->Valid = 1;
     Line->Tag = Tag;
     Line->Dirty = 0;
@@ -72,23 +75,13 @@ void accessL1(const uint32_t address, const uint8_t *data, const uint32_t mode) 
 
   if (mode == MODE_READ) {    // read data from cache line
 
-    //TODO: fix assignment of data
-    if (0 == (address % 8)) { // even word on block
-      memcpy(data, &(L1Cache[index << 6 + offset] ), WORD_SIZE); // Perguntar ao professor qual o endereçamento 4 ou 1 bytes?
-    } else { // odd word on block
-      memcpy(data, &(L1Cache[WORD_SIZE]), WORD_SIZE);
-    }
+    memcpy(data, &(L1Cache[index*BLOCK_SIZE + offset] ), WORD_SIZE); 
     time += L1_READ_TIME;
   }
 
   if (mode == MODE_WRITE) { // write data from cache line
 
-    //TODO: fix assignment of data
-    if (!(address % 8)) {   // even word on block
-      memcpy(&(L1Cache[0]), data, WORD_SIZE);
-    } else { // odd word on block
-      memcpy(&(L1Cache[WORD_SIZE]), data, WORD_SIZE);
-    }
+    memcpy(&(L1Cache[index*BLOCK_SIZE + offset]), data, WORD_SIZE);
     time += L1_WRITE_TIME;
     Line->Dirty = 1;
   }

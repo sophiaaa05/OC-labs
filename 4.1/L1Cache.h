@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include "Cache.h"
+#include "../base_code/Cache.h"
 
 void resetTime();
 
@@ -17,7 +17,7 @@ void accessDRAM(uint32_t, uint8_t *, uint32_t);
 /*********************** Cache *************************/
 
 void initCache();
-void accessL1(uint32_t, uint8_t *, uint32_t);
+void accessL1( uint32_t,  uint8_t *,  uint32_t);
 
 typedef struct CacheLine {
   uint32_t Tag;
