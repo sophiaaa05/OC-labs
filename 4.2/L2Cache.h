@@ -1,6 +1,7 @@
 #ifndef L2CACHE_H
 #define L2CACHE_H
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,6 +9,7 @@
 
 #include "../base_code/Cache.h"
 
+#define L1_LINES L1_SIZE / BLOCK_SIZE
 #define L2_LINES L2_SIZE / BLOCK_SIZE
 
 void resetTime();
@@ -26,9 +28,8 @@ void initCache();
 
 typedef struct cache_line {
   uint32_t tag;
-  uint8_t data[BLOCK_SIZE];
-  uint8_t valid;
-  uint8_t dirty;
+  bool valid;
+  bool dirty;
 
 } cache_line;
 

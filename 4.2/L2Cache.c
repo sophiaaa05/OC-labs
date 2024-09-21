@@ -1,17 +1,23 @@
 #include "L2Cache.h"
 
-uint8_t DRAM[DRAM_SIZE];
+uint8_t DRAM[DRAM_SIZE] = {0};
+uint8_t l1_cache_data[L1_SIZE];
+uint8_t l2_cache_data[L2_SIZE];
 uint32_t time;
 
 cache l1_cache;
 cache l2_cache;
 
-uint8_t* get_cache_line_address(cache* cache, int index) {
-    return &(cache->lines[index].data[0]);  // Assuming 64-byte cache lines
+cache_line* get_cache_line(cache* cache, int index) {
+    return &(cache->lines[index]);
 }
 
-uint8_t* get_word_address(cache* cache, int index, int offset) {
-    return &(cache->lines[index].data[offset * WORD_SIZE]);
+uint8_t* get_block(uint8_t* cache, int index) {
+    return &(cache[index<<6]);
+}
+
+uint8_t* get_word(uint8_t* cache, int index, int offset) {
+    return &(cache[(index * BLOCK_SIZE) + offset]);
 }
 
 /**************** Time Manipulation ***************/
@@ -48,7 +54,7 @@ void accessL2(uint32_t address,  uint8_t *data,  uint32_t mode){
     uint32_t tag, index, offset, mem_address;
 
     // Temporary buffer for blocks
-    uint8_t buffer[BLOCK_SIZE];
+    uint8_t buffer[BLOCK_SIZE] = {0};
 
     // Initialize L2 Cache
     if (l2_cache.init == 0)
@@ -56,57 +62,56 @@ void accessL2(uint32_t address,  uint8_t *data,  uint32_t mode){
         // Initialize each cache line
         for (size_t i = 0; i < L2_LINES; i++)
         {
-            l2_cache.lines[i].valid = 0;
-            l2_cache.lines[i].dirty = 0;
+            l2_cache.lines[i].valid = false;
+            l2_cache.lines[i].dirty = false;
             l2_cache.lines[i].tag = 0;
         }
+        l2_cache.init = 1;
     }
 
     tag = address >> 14; // Discard the rightmost 14 bits, resulting in tag being the first 18 bits
     index = (address >> 6) & ((1 << 8) - 1); // Create a bitmask to remove the index bits
     offset = address & ((1 << 6) - 1); // Create a bitmask to remove the offset
-    mem_address = address >> 6; // TODO: não entendo completamente isto, posso confiar que tá bem?
+    mem_address = address >> 6;
 
     // Get cache_line pointer
-    cache_line* line = &(l2_cache.lines[index]);
-
-    // Access Cache
+    cache_line* line = get_cache_line(&l2_cache, index);
 
     // Cache Miss
-    if (!line->valid || line->tag != tag) {     
+    if (!(line->valid) || line->tag != tag) {
         // Read block from DRAM
-        accessDRAM(mem_address, buffer, MODE_READ); 
+        accessDRAM(mem_address, buffer, MODE_READ);
         
         // If dirty, write back.
         if ((line->valid) && (line->dirty))
         {
             // Write back old block to DRAM
-            accessDRAM(mem_address, get_cache_line_address(&l2_cache, index), MODE_WRITE);
+            accessDRAM(mem_address, get_block(l2_cache_data, index), MODE_WRITE);
         }
 
         // Copy new block to Cache
-        memcpy(get_cache_line_address(&l2_cache, index), buffer, BLOCK_SIZE);
+        memcpy(get_block(l2_cache_data, index), buffer, BLOCK_SIZE);
 
         // Update fields
-        line->valid = 1;
+        line->valid = true;
         line->tag = tag;
-        line->dirty = 0;
+        line->dirty = false;
     }
 
     if (mode == MODE_READ) {
         memcpy(data,
-               get_word_address(&l2_cache, index, offset),
+               get_word(l2_cache_data, index, offset),
                WORD_SIZE);
 
         time += L2_READ_TIME;
     }
 
     if (mode == MODE_WRITE) {
-        memcpy(get_word_address(&l2_cache, index, offset),
+        memcpy(get_word(l2_cache_data, index, offset),
                data, WORD_SIZE);
 
         time += L2_WRITE_TIME;
-        line->dirty = 1;
+        line->dirty = true;
     }
 
 }
@@ -116,21 +121,19 @@ void accessL1(const uint32_t address, uint8_t* data, access_mode mode) {
     uint32_t tag, index, offset, mem_address;
 
     // Temporary buffer for blocks
-    uint8_t buffer[BLOCK_SIZE];
+    uint8_t buffer[BLOCK_SIZE] = {0};
 
     // Initialize L1 Cache
     if (l1_cache.init == 0)
     {   
         // Initialize each cache line
-        for (size_t i = 0; i < L2_LINES; i++)
+        for (size_t i = 0; i < L1_LINES; i++)
         {
-            l1_cache.lines[i].valid = 0;
-            l1_cache.lines[i].dirty = 0;
+            l1_cache.lines[i].valid = false;
+            l1_cache.lines[i].dirty = false;
             l1_cache.lines[i].tag = 0;
-            for (int k = 0; i < BLOCK_SIZE; ++i) {
-                l1_cache.lines[i].data[k] = 0;
-            }
         }
+        l1_cache.init = 1;
     }
 
     tag = address >> 14; // Discard the rightmost 14 bits, resulting in tag being the first 18 bits
@@ -139,45 +142,43 @@ void accessL1(const uint32_t address, uint8_t* data, access_mode mode) {
     mem_address = address >> 6;
 
     // Get cache_line pointer
-    cache_line* line = &(l1_cache.lines[index]);
-
-    // Access Cache
+    cache_line* line = get_cache_line(&l1_cache, index);
 
     // Cache Miss
-    if (!line->valid || line->tag != tag) {     
-        // Read block from L2
+    if (!(line->valid) || line->tag != tag) {
+        // Read block from L2 and store in buffer
         accessL2(mem_address, buffer, MODE_READ);
         
         // If dirty, write back.
         if ((line->valid) && (line->dirty))
         {
             // Write back old block to L2
-            accessL2(mem_address, get_cache_line_address(&l1_cache, index), MODE_WRITE);
+            accessL2(mem_address, get_block(l1_cache_data, index), MODE_WRITE);
         }
 
-        // Copy new block to Cache
-        memcpy(get_cache_line_address(&l1_cache, index), buffer, BLOCK_SIZE);
+        // Copy read block in buffer to block in Cache
+        memcpy(get_block(l1_cache_data, index), buffer, BLOCK_SIZE);
 
         // Update fields
-        line->valid = 1;
+        line->valid = true;
         line->tag = tag;
-        line->dirty = 0;
+        line->dirty = false;
     }
 
      if (mode == MODE_READ) {
         memcpy(data,
-               get_word_address(&l1_cache, index, offset),
+               get_word(l1_cache_data, index, offset),
                WORD_SIZE);
 
         time += L1_READ_TIME;
     }
 
     if (mode == MODE_WRITE) {
-        memcpy(get_word_address(&l1_cache, index, offset),
+        memcpy(get_word(l1_cache_data, index, offset),
                data, WORD_SIZE);
 
         time += L1_WRITE_TIME;
-        line->dirty = 1;
+        line->dirty = true;
     }
 
 
