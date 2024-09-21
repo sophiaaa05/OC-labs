@@ -12,6 +12,8 @@
 #define L1_LINES L1_SIZE / BLOCK_SIZE
 #define L2_LINES L2_SIZE / BLOCK_SIZE
 
+#define L2_WAYS 2
+
 void resetTime();
 
 uint32_t getTime();
@@ -33,7 +35,7 @@ typedef struct cache_line {
   uint32_t tag;
   bool valid;
   bool dirty;
-
+  uint32_t lru;
 } cache_line;
 
 typedef struct cache {
