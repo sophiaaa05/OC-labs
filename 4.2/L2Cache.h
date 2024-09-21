@@ -8,20 +8,21 @@
 
 #include "../base_code/Cache.h"
 
+#define L2_LINES L2_SIZE / BLOCK_SIZE
+
 void resetTime();
 
 uint32_t getTime();
 
 /****************  RAM memory (byte addressable) ***************/
-void accessDRAM(uint32_t, uint8_t *, uint32_t);
+
 
 
 /*********************** Cache *************************/
 
 void initCache();
 
-void accessL1( uint32_t,  uint8_t *,  uint32_t);
-void accessL2( uint32_t,  uint8_t *,  access_mode);
+
 
 typedef struct cache_line {
   uint32_t tag;
@@ -33,7 +34,7 @@ typedef struct cache_line {
 
 typedef struct cache {
   uint32_t init;
-  cache_line lines[L2_SIZE / BLOCK_SIZE];
+  cache_line lines[L2_LINES];
 } cache;
 
 
