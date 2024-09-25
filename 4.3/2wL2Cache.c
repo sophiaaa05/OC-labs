@@ -112,7 +112,7 @@ void accessL2(uint32_t address,  uint8_t *data,  uint32_t mode){
     if (!(line->valid) || line->tag != tag) {
         // Read block from DRAM
         accessDRAM(mem_address, buffer, MODE_READ);
-        
+
         // If dirty, write back.
         if ((line->valid) && (line->dirty))
         {
@@ -185,7 +185,13 @@ void accessL1(const uint32_t address, uint8_t* data, access_mode mode) {
     if (!(line->valid) || line->tag != tag) {
         // Read block from L2 and store in buffer
         accessL2(mem_address, buffer, MODE_READ);
-        
+
+        // Check if we are going to a knew block, is so reads from RAM
+        if ((address & 63) == 0 && (address >> 6) % 64 != 0 && address != 0) 
+        { 
+            accessDRAM(mem_address, buffer, MODE_READ);
+        } 
+
         // If dirty, write back.
         if ((line->valid) && (line->dirty))
         {

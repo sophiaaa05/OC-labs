@@ -8,6 +8,8 @@ uint32_t time;
 cache l1_cache;
 cache l2_cache;
 
+int counter = 0;
+
 cache_line* get_cache_line(cache* cache, int index) {
     return &(cache->lines[index]);
 }
@@ -60,7 +62,7 @@ void accessL2(uint32_t address,  uint8_t *data,  uint32_t mode){
     if (l2_cache.init == 0)
     {   
         // Initialize each cache line
-        for (size_t i = 0; i < L2_LINES; i++)
+        for (size_t i = 0; i < L2_LINES; i++) 
         {
             l2_cache.lines[i].valid = false;
             l2_cache.lines[i].dirty = false;
@@ -81,7 +83,7 @@ void accessL2(uint32_t address,  uint8_t *data,  uint32_t mode){
     if (!(line->valid) || line->tag != tag) {
         // Read block from DRAM
         accessDRAM(mem_address, buffer, MODE_READ);
-        
+       
         // If dirty, write back.
         if ((line->valid) && (line->dirty))
         {
@@ -147,8 +149,17 @@ void accessL1(const uint32_t address, uint8_t* data, access_mode mode) {
     // Cache Miss
     if (!(line->valid) || line->tag != tag) {
         // Read block from L2 and store in buffer
-        accessL2(mem_address, buffer, MODE_READ);
         
+        // Access L2 if address is not a multiple of 64
+        accessL2(mem_address, buffer, MODE_READ); 
+
+        // Check if we are going to a knew block, is so reads from RAM
+        if ((address & 63) == 0 && (address >> 6) % 64 != 0) 
+        { 
+            accessDRAM(mem_address, buffer, MODE_READ);
+        } 
+        
+
         // If dirty, write back.
         if ((line->valid) && (line->dirty))
         {
