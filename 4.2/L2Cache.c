@@ -5,18 +5,23 @@ uint8_t l1_cache_data[L1_SIZE];
 uint8_t l2_cache_data[L2_SIZE];
 uint32_t time;
 
-cache l1_cache;
-cache l2_cache;
+cache_l1 l1_cache;
+cache_l2 l2_cache;
 
 int counter = 0;
 
-cache_line* get_cache_line(cache* cache, int index) {
+cache_line* get_cache_line_l1(cache_l1* cache, int index) {
+    return &(cache->lines[index]);
+}
+
+cache_line* get_cache_line_l2(cache_l2* cache, int index) {
     return &(cache->lines[index]);
 }
 
 uint8_t* get_block(uint8_t* cache, int index) {
     return &(cache[index<<6]);
 }
+
 
 uint8_t* get_word(uint8_t* cache, int index, int offset) {
     return &(cache[(index * BLOCK_SIZE) + offset]);
@@ -77,7 +82,7 @@ void accessL2(uint32_t address,  uint8_t *data,  uint32_t mode){
     mem_address = address >> 6;
 
     // Get cache_line pointer
-    cache_line* line = get_cache_line(&l2_cache, index);
+    cache_line* line = get_cache_line_l2(&l2_cache, index);
 
     // Cache Miss
     if (!(line->valid) || line->tag != tag) {
@@ -144,26 +149,18 @@ void accessL1(const uint32_t address, uint8_t* data, access_mode mode) {
     mem_address = address >> 6;
 
     // Get cache_line pointer
-    cache_line* line = get_cache_line(&l1_cache, index);
+    cache_line* line = get_cache_line_l1(&l1_cache, index);
 
     // Cache Miss
     if (!(line->valid) || line->tag != tag) {
         // Read block from L2 and store in buffer
-        
-        // Access L2 if address is not a multiple of 64
-        accessL2(mem_address, buffer, MODE_READ); 
+        accessL2(address, buffer, MODE_READ);
 
-        // Check if we are going to a new block, if so reads from RAM
-        if ((address & (BLOCK_SIZE - 1)) == 0 && (mem_address) % BLOCK_SIZE != 0) 
-        { 
-            accessDRAM(mem_address, buffer, MODE_READ);
-        } 
-        
         // If dirty, write back.
         if ((line->valid) && (line->dirty))
         {
             // Write back old block to L2
-            accessL2(mem_address, get_block(l1_cache_data, index), MODE_WRITE);
+            accessL2(address, get_block(l1_cache_data, index), MODE_WRITE);
         }
 
         // Copy read block in buffer to block in Cache

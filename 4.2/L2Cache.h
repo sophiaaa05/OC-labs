@@ -36,10 +36,15 @@ typedef struct cache_line {
 
 } cache_line;
 
-typedef struct cache {
+typedef struct cache_l1 {
+  uint32_t init;
+  cache_line lines[L1_LINES];
+} cache_l1;
+
+typedef struct cache_l2 {
   uint32_t init;
   cache_line lines[L2_LINES];
-} cache;
+} cache_l2;
 
 
 /*********************** Interfaces *************************/
