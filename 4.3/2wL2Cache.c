@@ -186,17 +186,11 @@ void accessL1(const uint32_t address, uint8_t* data, access_mode mode) {
         // Read block from L2 and store in buffer
         accessL2(address, buffer, MODE_READ);
 
-        // Check if we are going to a new block, if so reads from RAM
-        if ((address & BLOCK_SIZE - 1) == 0 && (mem_address) % BLOCK_SIZE != 0 && address != 0) 
-        { 
-            accessDRAM(address, buffer, MODE_READ);
-        } 
-
         // If dirty, write back.
         if ((line->valid) && (line->dirty))
         {
             // Write back old block to L2
-            accessL2(mem_address, get_block(l1_cache_data, index), MODE_WRITE);
+            accessL2(address, get_block(l1_cache_data, index), MODE_WRITE);
         }
 
         // Copy read block in buffer to block in Cache
