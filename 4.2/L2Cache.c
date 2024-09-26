@@ -71,8 +71,8 @@ void accessL2(uint32_t address,  uint8_t *data,  uint32_t mode){
         l2_cache.init = 1;
     }
 
-    tag = address >> 14; // Discard the rightmost 14 bits, resulting in tag being the first 18 bits
-    index = (address >> 6) & ((1 << 8) - 1); // Create a bitmask to remove the index bits
+    tag = address >> 13; // Discard the rightmost 14 bits, resulting in tag being the first 18 bits
+    index = (address >> 6) & ((1 << 9) - 1); // Create a bitmask to remove the index bits
     offset = address & ((1 << 6) - 1); // Create a bitmask to remove the offset
     mem_address = address >> 6;
 
@@ -154,7 +154,7 @@ void accessL1(const uint32_t address, uint8_t* data, access_mode mode) {
         accessL2(mem_address, buffer, MODE_READ); 
 
         // Check if we are going to a new block, if so reads from RAM
-        if ((address & BLOCK_SIZE - 1) == 0 && (mem_address) % BLOCK_SIZE != 0) 
+        if ((address & (BLOCK_SIZE - 1)) == 0 && (mem_address) % BLOCK_SIZE != 0) 
         { 
             accessDRAM(mem_address, buffer, MODE_READ);
         } 

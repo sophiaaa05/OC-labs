@@ -49,6 +49,15 @@ void accessL1(uint32_t address,  uint8_t *data,  uint32_t mode) {
     }
     SimpleCache.init = 1;
   }
+if (SimpleCache.init == 0) {
+    for (i = 0; i < L1_SIZE / BLOCK_SIZE; i++) {
+      SimpleCache.lines[i].Valid = 0;
+      SimpleCache.lines[i].Dirty = 0;
+      SimpleCache.lines[i].Tag = 0;
+      
+    }
+    SimpleCache.init = 1;
+  }
 
   const uint32_t Tag = address >> 14; // Create a bitmask to remove the index and offset
   const uint32_t index = (address >> 6) & ((1 << 8) - 1); // Create a bitmask to remove the tag

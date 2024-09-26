@@ -1,0 +1,10 @@
+Test 1: Write in Same Cache Line
+WRITE - Address: 0x00000000, Data: 1 1 1 1 , Time: 111
+WRITE - Address: 0x00004000, Data: 2 2 2 2 , Time: 227
+READ - Address: 0x00004000, Data: 2 2 2 2 , Time: 228
+READ - Address: 0x00000000, Data: 0 0 0 0 , Time: 244
+
+Test 2: Write Back and Read
+WRITE - Address: 0x00000000, Data: 5 5 5 5 , Time: 1
+WRITE - Address: 0x00004000, Data: 5 5 5 5 , Time: 17
+READ - Address: 0x00000000, Data: 2 2 2 2 , Time: 33
